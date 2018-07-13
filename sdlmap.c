@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
 
 			SDL_RenderPresent(renderer);
 		}
+		SDL_Delay(200);
 	}
 	SDLTest_CommonQuit(state);
 	return 0;

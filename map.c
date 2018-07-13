@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <SDL_test_common.h>
 #include <SDL_image.h>
+#include <http.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 
 static int long2tilex(float lon, int z) {
 	return (int)(floor((lon + 180.0) / 360.0 * pow(2.0, z))); 
@@ -106,12 +110,14 @@ void GeoMap_drawMap (SDL_Renderer *renderer, float lat, float lon, int zoom) {
 	int x_n = 0;
 	int y_n = 0;
 	char tile_name[1024];
+	char tile_name_tmp[1024];
 	char tile_url[1024];
 	uint8_t tiles_x = (viewport.w + 255) / 256;
 	uint8_t tiles_y = (viewport.h + 255) / 256;
 	for (y_n = 0; y_n < tiles_y; y_n++) {
 		for (x_n = 0; x_n < tiles_x; x_n++) {
 			sprintf(tile_name, "MAPS/osm_%i_%i_%i.png", zoom, tile_x + x_n - (tiles_x / 2), tile_y + y_n - (tiles_y / 2));
+			sprintf(tile_name_tmp, "MAPS/osm_%i_%i_%i.png.tmp", zoom, tile_x + x_n - (tiles_x / 2), tile_y + y_n - (tiles_y / 2));
 			if (file_exists(tile_name) == 0) {
 #ifdef WINDOWS
 				mkdir("MAPS");
@@ -119,7 +125,16 @@ void GeoMap_drawMap (SDL_Renderer *renderer, float lat, float lon, int zoom) {
 				mkdir("MAPS", 0755);
 #endif
 				sprintf(tile_url, "http://tile.openstreetmap.org/%i/%i/%i.png", zoom, tile_x + x_n - (tiles_x / 2), tile_y + y_n - (tiles_y / 2));
-				htmlget(tile_url, tile_name);
+
+				// blocking using build in http client
+				//htmlget(tile_url, tile_name);
+
+				// external threaded using wget
+				char shell_cmd[4096];
+				sprintf(shell_cmd, "(cp empty.png %s ; wget -q -O %s %s && mv %s %s || rm -rf %s %s) &", tile_name, tile_name_tmp, tile_url, tile_name_tmp, tile_name, tile_name, tile_name_tmp);
+				system(shell_cmd);
+
+
 			}
 			DrawTile(renderer, x_n * 256, y_n * 256, tile_name);
 		}
